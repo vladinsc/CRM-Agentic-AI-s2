@@ -1,0 +1,70 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: crm-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - core-api
+    networks:
+      - crm-network
+    restart: unless-stopped
+
+  core-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: crm-core-api
+    ports:
+      - "8000:8000"
+    environment:
+      # The database hostname is just the service name 'db'
+      - DATABASE_URL=postgresql://crm_user:crm_password@db:5432/crm_db
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - crm-network
+    restart: unless-stopped
+
+  # 3. AI Service (FastAPI/Flask)
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: crm-ai-service
+    ports:
+      - "8001:8000" 
+    networks:
+      - crm-network
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    container_name: crm-postgres
+    environment:
+      POSTGRES_USER: crm_user
+      POSTGRES_PASSWORD: crm_password
+      POSTGRES_DB: crm_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - crm-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crm_user -d crm_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+networks:
+  crm-network:
+    driver: bridge
+
+
+volumes:
+  postgres_data:
