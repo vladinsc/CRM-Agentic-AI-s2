@@ -14,7 +14,7 @@ services:
 
   core-api:
     build:
-      context: ./backend
+      context: ./core-api
       dockerfile: Dockerfile
     container_name: crm-core-api
     ports:
